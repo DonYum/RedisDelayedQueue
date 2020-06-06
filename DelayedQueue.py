@@ -31,7 +31,7 @@ class RedisDelayedQueue():
         self.del_val(val)
         score = self.now_ts + expire
         cnt = self.redis_conn.zadd(self.que_name, {val: score})
-        logger.info(f'[DelayedQueue]: add({val}), score={score}, cnt={cnt}')
+        logger.info(f'[DelayedQueue]: add({val}), expire={expire}s, score={score}, cnt={cnt}')
         return cnt
 
     def get_all(self):
@@ -47,6 +47,13 @@ class RedisDelayedQueue():
         cnt = self.redis_conn.zrem(self.que_name, val)
         if cnt:
             logger.info(f'[DelayedQueue]: del_val({val})')
+        return cnt
+
+    def drop(self):
+        cnt = self.redis_conn.delete(self.que_name)
+        if cnt:
+            logger.info(f'[DelayedQueue]: drop(), cnt={cnt}')
+        return cnt
 
 
 # 实现延时Queue
@@ -89,3 +96,13 @@ class RedisDelayedQueueOld():
         self.redis_conn.srem(self.prefix, val)
         self.redis_conn.delete(self._key(val))
         logger.info(f'[DelayedQueue]: del_val({val})')
+
+    def drop(self):
+        vals = self.redis_conn.smembers(self.prefix)
+        for val in vals:
+            res = self.redis_conn.delete(self._key(val))
+
+        cnt = self.redis_conn.delete(self.prefix)
+        if cnt:
+            logger.info(f'[DelayedQueue]: drop(), cnt={cnt}')
+        return cnt
