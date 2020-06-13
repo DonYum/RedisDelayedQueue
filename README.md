@@ -1,19 +1,28 @@
 # RedisDelayedQueue
 
-## 思路1——RedisDelayedQueue
+## Usage
+
+使用方法：
+
+- 生产：
+
+```python
+lazy_que = RedisDelayedQueue(redis_conn, 'prefix')
+lazy_que.add('value1', 100)   # add()之后会在expire(秒)之后才能get到，重复add()的话重新计时。
+```
+
+- 消费：
+
+```python
+lazy_que = RedisDelayedQueue(redis_conn, 'prefix')
+while True:
+    res = lazy_que.pop()
+    if res:
+        process()
+```
+
+## 实现方式
 
 使用redis的zset。
 
-用释放时间点的时间戳做score，然后使用`zrangebyscore(que_name, 0, now_ts)`来获取及时结束的值。
-
-Ref：https://medium.com/@cheukfung/redis%E5%BB%B6%E8%BF%9F%E9%98%9F%E5%88%97-c940850a264f
-
-## 思路2——RedisDelayedQueueOld
-
-使用`expire`来维护时延信息。
-
-## TODO
-
-目前的版本不支持并发。
-
-修改方法：使用RedLock做全局锁。
+用释放时间点的时间戳做score，然后使用`zrangebyscore(que_name, 0, now_ts)`来获取计时结束的队列元素。
